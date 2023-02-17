@@ -4,7 +4,7 @@
 #include <assert.h>
 #include "ansicolors.h"
 
-const char author[] = ANSI_BOLD ANSI_COLOR_RED "REPLACE THIS WITH YOUR NAME AND UT EID" ANSI_RESET;
+const char author[] = ANSI_BOLD ANSI_COLOR_RED "ANDREW LU ayl538" ANSI_RESET;
 
 /*
  * The following helpers can be used to interact with the memory_block_t
@@ -13,6 +13,7 @@ const char author[] = ANSI_BOLD ANSI_COLOR_RED "REPLACE THIS WITH YOUR NAME AND 
 
 // A sample pointer to the start of the free list.
 memory_block_t *free_head;
+memory_block_t *prev_block;
 
 /*
  * is_allocated - returns true if a block is marked as allocated.
@@ -93,7 +94,14 @@ memory_block_t *get_block(void *payload) {
  * find - finds a free block that can satisfy the umalloc request.
  */
 memory_block_t *find(size_t size) {
-    //* STUDENT TODO
+    memory_block_t* currBlock = free_head;
+    while(currBlock) {
+        if (get_size(currBlock) >= size) {
+            return currBlock;
+        }
+        currBlock = get_next(currBlock);
+        prev_block = currBlock;
+    }
     return NULL;
 }
 
@@ -101,16 +109,24 @@ memory_block_t *find(size_t size) {
  * extend - extends the heap if more memory is required.
  */
 memory_block_t *extend(size_t size) {
-    //* STUDENT TODO
-    return NULL;
+    memory_block_t* newHead = csbrk(ALIGN(size) + ALIGNMENT);
+    put_block(newHead, ALIGN(size) - ALIGNMENT, false);
+    newHead->next = free_head;
+    free_head = newHead;
+    return free_head;
 }
 
 /*
  * split - splits a given block in parts, one allocated, one free.
  */
 memory_block_t *split(memory_block_t *block, size_t size) {
-    //* STUDENT TODO
-    return NULL;
+    size = ALIGN(size); //add padding
+    size_t sizeDiff = get_size(block) - size - (sizeof(memory_block_t));
+    block->block_size_alloc = sizeDiff;
+    memory_block_t* newBlock = (memory_block_t*)((char*)block + sizeDiff + sizeof(memory_block_t));
+    put_block(newBlock, size, true);
+    return newBlock;
+
 }
 
 /*
@@ -128,7 +144,9 @@ memory_block_t *coalesce(memory_block_t *block) {
  * along with allocating initial memory.
  */
 int uinit() {
-    //* STUDENT TODO
+    size_t initialSize = 4 * PAGESIZE;
+    free_head = csbrk(initialSize); //bruh idk how much i need
+    put_block(free_head, initialSize - ALIGNMENT, false);
     return 0;
 }
 
@@ -136,7 +154,26 @@ int uinit() {
  * umalloc -  allocates size bytes and returns a pointer to the allocated memory.
  */
 void *umalloc(size_t size) {
-    //* STUDENT TODO
+    prev_block = NULL;
+    memory_block_t* memBlock = find(size);
+    if (!memBlock) {
+        memBlock = extend(size);
+    }
+    if (get_size(memBlock) > size + ((ALIGNMENT * 10))) {
+        memBlock = split(memBlock, size);
+        allocate(memBlock);
+        return get_payload(memBlock);
+    }
+    else {
+        if (prev_block) {
+            prev_block->next = memBlock->next;
+        } 
+        else {
+            free_head = memBlock->next;
+        }
+        allocate(memBlock);
+        return get_payload(memBlock);
+    }
     return NULL;
 }
 
@@ -145,5 +182,10 @@ void *umalloc(size_t size) {
  * by a previous call to malloc.
  */
 void ufree(void *ptr) {
-    //* STUDENT TODO
+    memory_block_t* p = get_block(ptr);
+    if (is_allocated(p)) {
+        deallocate(p);
+        p->next = free_head;
+        free_head = p;
+    }
 }

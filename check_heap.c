@@ -1,5 +1,8 @@
 
 #include "umalloc.h"
+#include "err_handler.h"
+#include <stdio.h>
+
 
 //Place any variables needed here from umalloc.c as an extern.
 extern memory_block_t *free_head;
@@ -29,13 +32,20 @@ int check_heap() {
     // Example heap check:
     // Check that all blocks in the free list are marked free.
     // If a block is marked allocated, return -1.
-    /*
-        memory_block_t *cur = free_head;
-        while (cur) {
-            if (is_allocated(cur)) {
-                return -1;
-            }
+    memory_block_t *cur = free_head;
+    while (cur) {
+        printf("Current free node size: %lu\n", cur->block_size_alloc);
+        printf("Current free node address: %p\n", cur);
+        if (is_allocated(cur)) {
+            logging(LOG_ERROR, "allocated block in free list");
+            return -1;
         }
-    */
+        if (cur->block_size_alloc % ALIGNMENT != 0) {
+            logging(LOG_ERROR, "improper alignment");
+            return -1;
+        }
+        cur = cur->next;
+    }
+    cur = free_head;
     return 0;
 }

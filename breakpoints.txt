@@ -1,3 +1,2 @@
-
 run ./traces/short2-bal.rep
 run ./traces/short2.rep

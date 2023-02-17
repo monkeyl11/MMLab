@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include "ansicolors.h"
+#include "err_handler.h"
+
 
 const char author[] = ANSI_BOLD ANSI_COLOR_RED "ANDREW LU ayl538" ANSI_RESET;
 
@@ -110,7 +112,7 @@ memory_block_t *find(size_t size) {
  */
 memory_block_t *extend(size_t size) {
     memory_block_t* newHead = csbrk(ALIGN(size) + ALIGNMENT);
-    put_block(newHead, ALIGN(size) - ALIGNMENT, false);
+    put_block(newHead, ALIGN(size), false);
     newHead->next = free_head;
     free_head = newHead;
     return free_head;
@@ -185,7 +187,30 @@ void ufree(void *ptr) {
     memory_block_t* p = get_block(ptr);
     if (is_allocated(p)) {
         deallocate(p);
-        p->next = free_head;
-        free_head = p;
+        memory_block_t* curr = free_head;
+        memory_block_t* prev = NULL;
+        //sort by memory address order
+        while(curr) {
+            if (curr > p) {
+                if (!prev) {
+                    p->next = free_head;
+                    free_head = p;
+                }
+                else {
+                    prev->next = p;
+                    p->next = curr;
+                }
+                return;
+            }
+            else {
+                prev = curr;
+                curr = curr->next;
+            }
+        }
+        prev->next = p;
+        p->next = NULL;
+    }
+    else {
+        logging(LOG_ERROR, "free attempt on non-allocated block");
     }
 }

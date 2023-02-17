@@ -32,20 +32,28 @@ int check_heap() {
     // Example heap check:
     // Check that all blocks in the free list are marked free.
     // If a block is marked allocated, return -1.
-    memory_block_t *cur = free_head;
-    while (cur) {
-        printf("Current free node size: %lu\n", cur->block_size_alloc);
-        printf("Current free node address: %p\n", cur);
-        if (is_allocated(cur)) {
+    memory_block_t *curr = free_head;
+    memory_block_t *prev = NULL;
+    //checking for alignment and also making sure allocated blocks arent here
+    while (curr) {
+        printf("Current free node size: %lu\n", curr->block_size_alloc);
+        printf("Current free node address: %p\n", curr);
+        if (is_allocated(curr)) { //checking to make sure block isn't allocated
             logging(LOG_ERROR, "allocated block in free list");
             return -1;
         }
-        if (cur->block_size_alloc % ALIGNMENT != 0) {
+        if (curr->block_size_alloc % ALIGNMENT != 0) { //checking to make sure block is aligned
             logging(LOG_ERROR, "improper alignment");
             return -1;
         }
-        cur = cur->next;
+        if (prev) { //checking to make sure there are no overlaps in allocation (free list is address-sorted)
+            if (prev + prev->block_size_alloc/ALIGNMENT + 1 > curr) {
+                logging(LOG_ERROR, "overlapping freed blocks");
+            return -1;
+            }
+        }
+        prev = curr;
+        curr = curr->next;
     }
-    cur = free_head;
     return 0;
 }

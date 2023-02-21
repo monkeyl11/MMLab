@@ -30,6 +30,7 @@ bool is_allocated(memory_block_t *block) {
  */
 void allocate(memory_block_t *block) {
     assert(block != NULL);
+    block->next = NULL;
     block->block_size_alloc |= 0x1;
 }
 
@@ -101,8 +102,8 @@ memory_block_t *find(size_t size) {
         if (get_size(currBlock) >= size) {
             return currBlock;
         }
-        currBlock = get_next(currBlock);
         prev_block = currBlock;
+        currBlock = get_next(currBlock);
     }
     return NULL;
 }
@@ -160,6 +161,7 @@ void *umalloc(size_t size) {
     memory_block_t* memBlock = find(size);
     if (!memBlock) {
         memBlock = extend(size);
+        prev_block = NULL;
     }
     if (get_size(memBlock) > size + ((ALIGNMENT * 10))) {
         memBlock = split(memBlock, size);
@@ -187,6 +189,10 @@ void ufree(void *ptr) {
     memory_block_t* p = get_block(ptr);
     if (is_allocated(p)) {
         deallocate(p);
+        if (!free_head) {
+            free_head = p;
+            return;
+        }
         memory_block_t* curr = free_head;
         memory_block_t* prev = NULL;
         //sort by memory address order

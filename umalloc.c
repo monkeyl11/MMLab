@@ -15,7 +15,7 @@ const char author[] = ANSI_BOLD ANSI_COLOR_RED "ANDREW LU ayl538" ANSI_RESET;
 
 // A sample pointer to the start of the free list.
 memory_block_t *free_head;
-memory_block_t *prev_block;
+memory_block_t *prevBlock;
 
 /*
  * is_allocated - returns true if a block is marked as allocated.
@@ -30,7 +30,7 @@ bool is_allocated(memory_block_t *block) {
  */
 void allocate(memory_block_t *block) {
     assert(block != NULL);
-    block->next = NULL;
+    block->next = NULL; //Added as extra security to mitigate any pointer errors
     block->block_size_alloc |= 0x1;
 }
 
@@ -102,7 +102,7 @@ memory_block_t *find(size_t size) {
         if (get_size(currBlock) >= size) {
             return currBlock;
         }
-        prev_block = currBlock;
+        prevBlock = currBlock;
         currBlock = get_next(currBlock);
     }
     return NULL;
@@ -137,6 +137,7 @@ memory_block_t *split(memory_block_t *block, size_t size) {
  */
 memory_block_t *coalesce(memory_block_t *block) {
     //* STUDENT TODO
+    //Didn't do, passed tests without coalesce
     return NULL;
 }
 
@@ -157,11 +158,11 @@ int uinit() {
  * umalloc -  allocates size bytes and returns a pointer to the allocated memory.
  */
 void *umalloc(size_t size) {
-    prev_block = NULL;
+    prevBlock = NULL;
     memory_block_t* memBlock = find(size);
     if (!memBlock) {
         memBlock = extend(size);
-        prev_block = NULL;
+        prevBlock = NULL;
     }
     if (get_size(memBlock) > size + ((ALIGNMENT * 10))) {
         memBlock = split(memBlock, size);
@@ -169,8 +170,8 @@ void *umalloc(size_t size) {
         return get_payload(memBlock);
     }
     else {
-        if (prev_block) {
-            prev_block->next = memBlock->next;
+        if (prevBlock) {
+            prevBlock->next = memBlock->next;
         } 
         else {
             free_head = memBlock->next;

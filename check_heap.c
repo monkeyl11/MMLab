@@ -36,7 +36,7 @@ int check_heap() {
     memory_block_t *prev = NULL;
     //checking for alignment and also making sure allocated blocks arent here
     while (curr) {
-        printf("Current free node size: %lu\n", curr->block_size_alloc);
+        printf("Current free node size: %lu\n", get_size(curr));
         printf("Current free node address: %p\n", curr);
         printf("Current free node pointing to: %p\n\n", curr->next);
         if (is_allocated(curr)) { //checking to make sure block isn't allocated
